@@ -1,20 +1,22 @@
 import requests
-# import PyPDF2 as pdf
 from bs4 import BeautifulSoup as bs
+# import re
+# import nltk
 
-file = open("webpage_content.txt", "r+", encoding = "utf-8")
-file.truncate(0)
+def webParser():
+    # url = input("Wep page link: ")
+    url = "https://en.wikipedia.org/wiki/Severe_acute_respiratory_syndrome_coronavirus_2"
+    response = requests.get(url)
 
-url = input("Wep page link: ")
-response = requests.get(url)
-
-if url.endswith(".pdf"):
-    print("Placeholder")
-else:
     soup = bs(response.content, "html.parser")
     for script in soup(["script", "style"]):
         script.extract()
     for text in soup.find_all(string = True):
-        file.write(text)
+        print(text)
 
-file.close()
+def summarizer():
+    print("Placeholder")
+
+if __name__ == "__main__":
+    webParser()
+    summarizer()
