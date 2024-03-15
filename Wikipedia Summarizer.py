@@ -1,6 +1,3 @@
-# GUI
-from tkinter import *
-
 # Libraries for Web Scraping
 from urllib.request import urlopen
 from bs4 import BeautifulSoup as bs
@@ -11,23 +8,8 @@ from nltk import sent_tokenize, word_tokenize
 from nltk.corpus import stopwords
 import heapq
 
-window = Tk()
-window.title("Wikipedia Summarizer")
-window.geometry("1280x720")
-window.resizable(False, False)
-
-# url = StringVar()
 url = "https://en.wikipedia.org/wiki/SARS-CoV-2"
-# summaryLength = StringVar()
 summaryLength = 7
-
-urlLabel = Label(window, text = "Wikipedia page link").place(x = 40, y = 60) 
-summaryLengthLabel = Label(window, text = "Number of sentences in the summary").place(x = 40, y = 100)
-urlInput = Entry(window, textvariable = url, width = 30).place(x = 300, y = 60)
-summaryLengthInput = Entry(window, textvariable = summaryLength, width = 30).place(x = 300, y = 100)
-submitButton = Button(window, text = "Submit").place(x = 40, y = 130)
-summaryOutput = Text(window, height = 20, width = 52)
-
 webData = urlopen(url)
 
 data = bs(webData, "lxml")
@@ -72,22 +54,23 @@ for sentence in sentenceList:
     for word in word_tokenize(sentence.lower()):
         # Word is relevant for scoring
         if word in wordFrequencies.keys():
-            # Sentence longer than 30 words (too long)
-            # if len(sentence.split(' ')) < 30:
-            # sentenceScore = sum(Normalized wordFrequencies of the words in the sentence)
-            if sentence not in sentenceScores.keys():
-                # Sentence already in sentenceScores{}
-                sentenceScores[sentence] = wordFrequencies[word]
-            else:
-                # Sentence not in sentenceScores{}
-                sentenceScores[sentence] += wordFrequencies[word]
+            if len(sentence.split(' ')) < 40:
+                # sentenceScore = sum(Normalized wordFrequencies of the words in the sentence)
+                if sentence not in sentenceScores.keys():
+                    # Sentence already in sentenceScores{}
+                    sentenceScores[sentence] = wordFrequencies[word]
+                else:
+                    # Sentence not in sentenceScores{}
+                    sentenceScores[sentence] += wordFrequencies[word]
 
 # Summarization
 # Top n sentences with the highest sentenceScores
-summarySentences = heapq.nlargest(summaryLength, sentenceScores, key = sentenceScores.get)
-summary = " ".join(summarySentences)
+sortedSentences = sorted(sentenceScores.items(), key = lambda x: x[1], reverse = True)
+selectedSentences = []
+for sentence, score in sortedSentences:
+    if sentence in content:
+        selectedSentences.append(sentence)
+    if len(selectedSentences) == summaryLength:
+        break
+summary = " ".join(selectedSentences)
 print(summary)
-
-summaryOutput.insert(END, summary)
-
-window.mainloop()
