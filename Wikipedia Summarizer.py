@@ -1,3 +1,8 @@
+# GUI
+from PyQt6.QtWidgets import QApplication, QLabel, QLineEdit, QPushButton, QTextEdit, QMainWindow
+from PyQt6.QtGui import QFont
+from PyQt6.QtCore import Qt
+
 # Libraries for Web Scraping
 from urllib.request import urlopen
 from bs4 import BeautifulSoup as bs
@@ -6,71 +11,141 @@ from bs4 import BeautifulSoup as bs
 import re
 from nltk import sent_tokenize, word_tokenize
 from nltk.corpus import stopwords
-import heapq
 
-url = "https://en.wikipedia.org/wiki/SARS-CoV-2"
-summaryLength = 7
-webData = urlopen(url)
+def summary():
+    link = linkInput.text()
+    summaryLength = int(summaryLengthInput.text())
 
-data = bs(webData, "lxml")
-paragraphs = data.find_all("p")
+    webData = urlopen(link)
+    data = bs(webData, "lxml")
 
-content = ""
-for p in paragraphs:
-    content += p.text
+    title = data.find("span", class_ = "mw-page-title-main")
+    pageTitle = title.text
+    pageTitleOutput.setText(pageTitle)
 
-# Removing Square Brackets and Extra Spaces
-content = re.sub(r'\[[0-9]*\]', ' ', content)
-content = re.sub(r'\s+', ' ', content)
-# Removing special characters and digits
-formattedContent = re.sub('[^a-zA-Z]', ' ', content)
-formattedContent = re.sub(r'\s+', ' ', formattedContent)
+    paragraphs = data.find_all("p")
+    content = ""
+    for p in paragraphs:
+        content += p.text
 
-# Sentence Tokenization and Stopwords Removal
-sentenceList = sent_tokenize(content)
-stopwords = stopwords.words('english')
+    # Removing Square Brackets and Extra Spaces
+    content = re.sub(r'\[[0-9]*\]', ' ', content)
+    content = re.sub(r'\s+', ' ', content)
+    # Removing special characters and digits
+    formattedContent = re.sub('[^a-zA-Z]', ' ', content)
+    formattedContent = re.sub(r'\s+', ' ', formattedContent)
 
-wordFrequencies = {}
+    # Sentence Tokenization and Stopwords Removal
+    sentenceList = sent_tokenize(content)
+    stopWords = stopwords.words('english')
 
-# Word Frequency Calculation
-for word in word_tokenize(formattedContent):
-    if word not in stopwords:
-        if word not in wordFrequencies.keys():
-            # First occurrence of a word
-            wordFrequencies[word] = 1
-        else:
-            # Subsequent occurrences of the word
-            wordFrequencies[word] += 1
-    maximumFrequency = max(wordFrequencies.values())
+    wordFrequencies = {}
 
-# Normalization (ensure all frequencies are between 0 to 1)
-for word in wordFrequencies.keys():
-    wordFrequencies[word] = (wordFrequencies[word] / maximumFrequency)
+    # Word Frequency Calculation
+    for word in word_tokenize(formattedContent):
+        if word not in stopWords:
+            if word not in wordFrequencies.keys():
+                # First occurrence of a word
+                wordFrequencies[word] = 1
+            else:
+                # Subsequent occurrences of the word
+                wordFrequencies[word] += 1
+        maximumFrequency = max(wordFrequencies.values())
 
-sentenceScores = {}
+    # Normalization (ensure all frequencies are between 0 to 1)
+    for word in wordFrequencies.keys():
+        wordFrequencies[word] = (wordFrequencies[word] / maximumFrequency)
 
-# Scoring Sentences
-for sentence in sentenceList:
-    for word in word_tokenize(sentence.lower()):
-        # Word is relevant for scoring
-        if word in wordFrequencies.keys():
-            if len(sentence.split(' ')) < 40:
-                # sentenceScore = sum(Normalized wordFrequencies of the words in the sentence)
-                if sentence not in sentenceScores.keys():
-                    # Sentence already in sentenceScores{}
-                    sentenceScores[sentence] = wordFrequencies[word]
-                else:
-                    # Sentence not in sentenceScores{}
-                    sentenceScores[sentence] += wordFrequencies[word]
+    sentenceScores = {}
 
-# Summarization
-# Top n sentences with the highest sentenceScores
-sortedSentences = sorted(sentenceScores.items(), key = lambda x: x[1], reverse = True)
-selectedSentences = []
-for sentence, score in sortedSentences:
-    if sentence in content:
-        selectedSentences.append(sentence)
-    if len(selectedSentences) == summaryLength:
-        break
-summary = " ".join(selectedSentences)
-print(summary)
+    # Scoring Sentences
+    for sentence in sentenceList:
+        for word in word_tokenize(sentence.lower()):
+            # Word is relevant for scoring
+            if word in wordFrequencies.keys():
+                if len(sentence.split(' ')) < 40:
+                    # sentenceScore = sum(Normalized wordFrequencies of the words in the sentence)
+                    if sentence not in sentenceScores.keys():
+                        # Sentence already in sentenceScores{}
+                        sentenceScores[sentence] = wordFrequencies[word]
+                    else:
+                        # Sentence not in sentenceScores{}
+                        sentenceScores[sentence] += wordFrequencies[word]
+
+    # Summarization
+    # Top n sentences with the highest sentenceScores
+    sortedSentences = sorted(sentenceScores.items(), key = lambda x: x[1], reverse = True)
+    selectedSentences = []
+    for sentence, score in sortedSentences:
+        if sentence in content:
+            selectedSentences.append(sentence)
+        if len(selectedSentences) == summaryLength:
+            break
+    summaryContent = " ".join(selectedSentences)
+    summaryContentOutput.setText(summaryContent)
+
+wikipediaSummarizer = QApplication([])
+
+# Create a window
+window = QMainWindow()
+window.setWindowTitle("Wikipedia Summarizer")
+window.setGeometry(50, 50, 1600, 900)
+window.setFixedSize(1600, 900)
+
+# Font Attributes
+font = QFont("Courier")
+font.setPixelSize(18)
+
+# Link Label
+linkLabel = QLabel("Link", window)
+linkLabel.setFixedSize(100, 50)
+linkLabel.move(50, 50)
+linkLabel.setFont(font)
+linkLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+# Link Input
+linkInput = QLineEdit(window)
+linkInput.setFixedSize(550, 50)
+linkInput.move(150, 50)
+linkInput.setFont(font)
+linkInput.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+# Summary length Label
+summaryLengthLabel = QLabel("No. of sentences in the summary", window)
+summaryLengthLabel.setFixedSize(350, 50)
+summaryLengthLabel.move(50, 100)
+summaryLengthLabel.setFont(font)
+linkLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+# Summary length Input
+summaryLengthInput = QLineEdit(window)
+summaryLengthInput.setFixedSize(300, 50)
+summaryLengthInput.move(400, 100)
+summaryLengthInput.setFont(font)
+summaryLengthInput.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+# Summarize Button
+summarize = QPushButton("Summarize", window)
+summarize.setFixedSize(150, 50)
+summarize.move(300, 150)
+summarize.setFont(font)
+summarize.clicked.connect(summary)
+
+# Wikipedia page Title
+pageTitleOutput = QLabel(window)
+pageTitleOutput.setFixedSize(650, 50)
+pageTitleOutput.move(50, 250)
+pageTitleOutput.setFont(font)
+pageTitleOutput.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+# Summary Content
+summaryContentOutput = QTextEdit(window)
+summaryContentOutput.setFixedSize(650, 550)
+summaryContentOutput.move(50, 300)
+summaryContentOutput.setFont(font)
+pageTitleOutput.setAlignment(Qt.AlignmentFlag.AlignJustify)
+summaryContentOutput.setReadOnly(True)
+
+window.show()
+
+wikipediaSummarizer.exec()
