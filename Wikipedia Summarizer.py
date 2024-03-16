@@ -37,7 +37,7 @@ def summary():
 
     # Sentence Tokenization and Stopwords Removal
     sentenceList = sent_tokenize(content)
-    stopWords = stopwords.words('english')
+    stopWords = stopwords.words("english")
 
     wordFrequencies = {}
 
@@ -63,7 +63,7 @@ def summary():
         for word in word_tokenize(sentence.lower()):
             # Word is relevant for scoring
             if word in wordFrequencies.keys():
-                if len(sentence.split(' ')) < 40:
+                if len(sentence.split(" ")) < 40:
                     # sentenceScore = sum(Normalized wordFrequencies of the words in the sentence)
                     if sentence not in sentenceScores.keys():
                         # Sentence already in sentenceScores{}
