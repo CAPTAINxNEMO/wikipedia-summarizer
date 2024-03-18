@@ -1,5 +1,5 @@
 # GUI
-from PyQt6.QtWidgets import QApplication, QLabel, QLineEdit, QPushButton, QTextEdit, QMainWindow
+from PyQt6.QtWidgets import QApplication, QLabel, QLineEdit, QPushButton, QTextEdit, QTableWidget, QTableWidgetItem, QMainWindow
 from PyQt6.QtGui import QFont
 from PyQt6.QtCore import Qt
 
@@ -52,7 +52,9 @@ def summary():
                 wordFrequencies[word] += 1
         maximumFrequency = max(wordFrequencies.values())
 
-    # Normalization (ensure all frequencies are between 0 to 1)
+    wf = wordFrequencies.copy()
+    
+    # Normalization
     for word in wordFrequencies.keys():
         wordFrequencies[word] = (wordFrequencies[word] / maximumFrequency)
 
@@ -83,6 +85,17 @@ def summary():
             break
     summaryContent = " ".join(selectedSentences)
     summaryContentOutput.setText(summaryContent)
+
+    # Most occurring words
+    # Sorting the dictionary
+    sortedWordFrequencies = sorted(wf.items(), key = lambda item: item[1], reverse = True)
+    topWords = sortedWordFrequencies[:15]
+    # Populating the table
+    for i, (topWord, frequency) in enumerate(topWords):
+        topWordsTable.setItem(i, 0, QTableWidgetItem(topWord))
+        topWordsTable.setItem(i, 1, QTableWidgetItem(str(frequency)))
+        topWordsTable.setColumnWidth(i, 175)
+        topWordsTable.setRowHeight(i, 25)
 
 wikipediaSummarizer = QApplication([])
 
@@ -145,6 +158,13 @@ summaryContentOutput.move(50, 300)
 summaryContentOutput.setFont(font)
 pageTitleOutput.setAlignment(Qt.AlignmentFlag.AlignJustify)
 summaryContentOutput.setReadOnly(True)
+
+# Top Words Table
+topWordsTable = QTableWidget(15, 2, window)
+topWordsTable.setFixedSize(400, 400)
+topWordsTable.move(750, 50)
+topWordsTable.setFont(font)
+topWordsTable.setHorizontalHeaderLabels(["Word", "Frequency"])
 
 window.show()
 
