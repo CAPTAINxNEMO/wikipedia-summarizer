@@ -11,6 +11,10 @@ from bs4 import BeautifulSoup as bs
 import re
 from nltk import sent_tokenize, word_tokenize
 from nltk.corpus import stopwords
+from nltk.stem import PorterStemmer
+from collections import Counter
+from gensim.models import Word2Vec
+from sklearn.metrics.pairwise import cosine_similarity
 
 def summary():
     link = linkInput.text()
@@ -29,30 +33,53 @@ def summary():
         content += p.text
 
     # Removing Square Brackets and Extra Spaces
-    content = re.sub(r'\[[0-9]*\]', ' ', content)
-    content = re.sub(r'\s+', ' ', content)
+    formattedContent = re.sub(r'\[[0-9]*\]', ' ', content)
+    formattedContent = re.sub(r'\s+', ' ', formattedContent)
     # Removing special characters and digits
-    formattedContent = re.sub('[^a-zA-Z]', ' ', content)
+    formattedContent = re.sub('[^a-zA-Z]', ' ', formattedContent)
     formattedContent = re.sub(r'\s+', ' ', formattedContent)
 
-    # Sentence Tokenization and Stopwords Removal
-    sentenceList = sent_tokenize(content)
+    # Tokenization and Preprocessing
+    sentences = sent_tokenize(formattedContent)
     stopWords = stopwords.words("english")
+    ps = PorterStemmer()
 
-    # Summarization
-    print("Sentence Tokenization")
+    preprocessedSentences = []
+    for sentence in sentences:
+        words = word_tokenize(sentence.lower())
+        words = [ps.stem(word) for word in words if word.isalnum() and word not in stopWords]
+        preprocessedSentences.append(words)
+    
+    # Train word embeddings
+    model = Word2Vec(preprocessedSentences, vector_size = 300, window = 5, min_count = 1, workers = 6)
+
+    # Compute sentence embeddings
+    sentenceEmbeddings = []
+    for sent in preprocessedSentences:
+        sentEmbedding = [model.wv[word] for word in sent if word in model.wv]
+        if sentEmbedding:
+            sentenceEmbeddings.append(sum(sentEmbedding) / len(sentEmbedding))
+        else:
+            # If no word found in vocabulary, use zero vector
+            sentenceEmbeddings.append([0] * 100)
+    
+    # Calculate sentence similarity using cosine similarity
+    similarityMatrix = cosine_similarity(sentenceEmbeddings)
+
+    # LexRank algorithm to rank sentences
+    scores = [sum(similarityMatrix[i]) for i in range(len(similarityMatrix))]
+
+    # Select top N sentences based on scores
+    topSentences = sorted(range(len(scores)), key = lambda i: scores[i], reverse = True)[:summaryLength]
+    summaryContent = [sentences[i] for i in topSentences]
+
+    # Print the summary
+    summaryContentOutput.setText(" ".join(summaryContent))
+
     # Most occurring words
     # Word Frequency Calculation
-    wordFrequencies = {}
-    for word in word_tokenize(formattedContent):
-        if word not in stopWords:
-            if word not in wordFrequencies.keys():
-                # First occurrence of a word
-                wordFrequencies[word] = 1
-            else:
-                # Subsequent occurrences of the word
-                wordFrequencies[word] += 1
-    # Sorting the dictionary
+    wordFrequencies = Counter(word for word in word_tokenize(formattedContent) if word not in stopWords)
+    # Sorting
     sortedWordFrequencies = sorted(wordFrequencies.items(), key = lambda item: item[1], reverse = True)
     topWords = sortedWordFrequencies[:10]
     # Populating the table
@@ -68,7 +95,7 @@ wikipediaSummarizer = QApplication([])
 # Create a window
 window = QMainWindow()
 window.setWindowTitle("Wikipedia Summarizer")
-window.setGeometry(50, 50, 1600, 900)
+window.setGeometry(0, 0, 1600, 900)
 window.setFixedSize(1600, 900)
 
 # Font Attributes
@@ -97,7 +124,7 @@ summaryLengthLabel = QLabel("No. of sentences in the summary", window)
 summaryLengthLabel.setFixedSize(350, 50)
 summaryLengthLabel.move(50, 100)
 summaryLengthLabel.setFont(font)
-linkLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
+summaryLengthLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
 # Summary length Input
 summaryLengthInput = QLineEdit(window)
