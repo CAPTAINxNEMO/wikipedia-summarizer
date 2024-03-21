@@ -33,19 +33,23 @@ def summary():
         content += p.text
 
     # Removing Square Brackets and Extra Spaces
-    formattedContent = re.sub(r'\[[0-9]*\]', ' ', content)
-    formattedContent = re.sub(r'\s+', ' ', formattedContent)
+    content = re.sub(r'\[[0-9]*\]', ' ', content)
+    content = re.sub(r'\s+', ' ', content)
     # Removing special characters and digits
-    formattedContent = re.sub('[^a-zA-Z]', ' ', formattedContent)
+    formattedContent = re.sub('[^a-zA-Z]', ' ', content)
     formattedContent = re.sub(r'\s+', ' ', formattedContent)
 
     # Tokenization and Preprocessing
-    sentences = sent_tokenize(formattedContent)
+    sentences = sent_tokenize(content)
     stopWords = stopwords.words("english")
     ps = PorterStemmer()
 
     preprocessedSentences = []
     for sentence in sentences:
+        preprocessedSentence = re.sub(r'\[[0-9]*\]', ' ', sentence)
+        preprocessedSentence = re.sub(r'\s+', ' ', preprocessedSentence)
+        preprocessedSentence = re.sub('[^a-zA-Z]', ' ', preprocessedSentence)
+        preprocessedSentence = re.sub(r'\s+', ' ', preprocessedSentence)
         words = word_tokenize(sentence.lower())
         words = [ps.stem(word) for word in words if word.isalnum() and word not in stopWords]
         preprocessedSentences.append(words)
@@ -81,14 +85,13 @@ def summary():
     wordFrequencies = Counter(word for word in word_tokenize(formattedContent) if word not in stopWords)
     # Sorting
     sortedWordFrequencies = sorted(wordFrequencies.items(), key = lambda item: item[1], reverse = True)
-    topWords = sortedWordFrequencies[:10]
+    topWords = sortedWordFrequencies[:13]
     # Populating the table
     for i, (topWord, frequency) in enumerate(topWords):
         frequencyItem = QTableWidgetItem(str(frequency))
         frequencyItem.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
         topWordsTable.setItem(i, 0, QTableWidgetItem(topWord))
         topWordsTable.setItem(i, 1, frequencyItem)
-        topWordsTable.setRowHeight(i, 30)
 
 wikipediaSummarizer = QApplication([])
 
@@ -156,7 +159,7 @@ summaryContentOutput.setAlignment(Qt.AlignmentFlag.AlignJustify)
 summaryContentOutput.setReadOnly(True)
 
 # Top Words Table
-topWordsTable = QTableWidget(10, 2, window)
+topWordsTable = QTableWidget(13, 2, window)
 topWordsTable.setFixedSize(400, 400)
 topWordsTable.move(750, 50)
 topWordsTable.setFont(font)
@@ -164,6 +167,7 @@ topWordsTable.horizontalHeader().setFont(headerFont)
 topWordsTable.setHorizontalHeaderLabels(["Word", "Frequency"])
 topWordsTable.setColumnWidth(0, 184)
 topWordsTable.setColumnWidth(1, 184)
+topWordsTable.resizeRowsToContents()
 
 window.show()
 
