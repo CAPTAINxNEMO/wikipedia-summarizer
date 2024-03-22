@@ -184,5 +184,3 @@ wordCloudOutput.move(1150, 50)
 window.show()
 
 wikipediaSummarizer.exec()
-
-# test1
