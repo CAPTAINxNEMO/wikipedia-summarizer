@@ -1,6 +1,6 @@
 # GUI
 from PyQt6.QtWidgets import QApplication, QLabel, QLineEdit, QPushButton, QTextEdit, QTableWidget, QTableWidgetItem, QMainWindow
-from PyQt6.QtGui import QFont
+from PyQt6.QtGui import QFont, QPixmap
 from PyQt6.QtCore import Qt
 
 # Libraries for Web Scraping
@@ -15,6 +15,10 @@ from nltk.stem import PorterStemmer
 from collections import Counter
 from gensim.models import Word2Vec
 from sklearn.metrics.pairwise import cosine_similarity
+
+# Data Visualization
+from wordcloud import WordCloud
+import matplotlib.pyplot as plt
 
 def summary():
     link = linkInput.text()
@@ -67,16 +71,14 @@ def summary():
             # If no word found in vocabulary, use zero vector
             sentenceEmbeddings.append([0] * 100)
     
+    # Summary
     # Calculate sentence similarity using cosine similarity
     similarityMatrix = cosine_similarity(sentenceEmbeddings)
-
     # LexRank algorithm to rank sentences
     scores = [sum(similarityMatrix[i]) for i in range(len(similarityMatrix))]
-
     # Select top N sentences based on scores
     topSentences = sorted(range(len(scores)), key = lambda i: scores[i], reverse = True)[:summaryLength]
     summaryContent = [sentences[i] for i in topSentences]
-
     # Print the summary
     summaryContentOutput.setText(" ".join(summaryContent))
 
@@ -92,6 +94,14 @@ def summary():
         frequencyItem.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
         topWordsTable.setItem(i, 0, QTableWidgetItem(topWord))
         topWordsTable.setItem(i, 1, frequencyItem)
+    
+    # WordCloud Generation
+    wordcloud = WordCloud(height = 400, width = 400, background_color = "white", stopwords = stopWords).generate(formattedContent)
+    plt.imshow(wordcloud, interpolation = "bilinear")
+    plt.axis("off")
+    wordcloud.to_file("wordcloud.png")
+    pixmap = QPixmap("wordcloud.png")
+    wordCloudOutput.setPixmap(pixmap)
 
 wikipediaSummarizer = QApplication([])
 
@@ -104,9 +114,6 @@ window.setFixedSize(1600, 900)
 # Font Attributes
 font = QFont("Courier")
 font.setPixelSize(18)
-headerFont = QFont("Courier")
-headerFont.setPixelSize(18)
-headerFont.setBold(True)
 
 # Link Label
 linkLabel = QLabel("Link", window)
@@ -163,11 +170,16 @@ topWordsTable = QTableWidget(13, 2, window)
 topWordsTable.setFixedSize(400, 400)
 topWordsTable.move(750, 50)
 topWordsTable.setFont(font)
-topWordsTable.horizontalHeader().setFont(headerFont)
+topWordsTable.horizontalHeader().setStyleSheet("QHeaderView::section {height: 34px; font-family: 'Courier'; font-size: 18px; font-weight: bold}")
 topWordsTable.setHorizontalHeaderLabels(["Word", "Frequency"])
 topWordsTable.setColumnWidth(0, 184)
 topWordsTable.setColumnWidth(1, 184)
 topWordsTable.resizeRowsToContents()
+
+# WordCloud
+wordCloudOutput = QLabel(window)
+wordCloudOutput.setFixedSize(400, 400)
+wordCloudOutput.move(1150, 50)
 
 window.show()
 
