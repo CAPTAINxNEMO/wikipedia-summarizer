@@ -1,5 +1,5 @@
 # GUI
-from PyQt6.QtWidgets import QApplication, QLabel, QLineEdit, QPushButton, QTextEdit, QTableWidget, QTableWidgetItem, QMainWindow
+from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QLineEdit, QRadioButton, QButtonGroup, QPushButton, QTextEdit, QTableWidget, QTableWidgetItem
 from PyQt6.QtGui import QFont, QPixmap
 from PyQt6.QtCore import Qt
 
@@ -22,7 +22,14 @@ import matplotlib.pyplot as plt
 
 def summary():
     link = linkInput.text()
-    summaryLength = int(summaryLengthInput.text())
+    # Summary Length
+    selectedRadioButton = summaryLengthInputGroup.checkedButton().text()
+    if selectedRadioButton == "Short":
+        summaryLength = 4
+    elif selectedRadioButton == "Medium":
+        summaryLength = 7
+    else:
+        summaryLength = 10
 
     webData = urlopen(link)
     data = bs(webData, "lxml")
@@ -130,18 +137,32 @@ linkInput.setFont(font)
 linkInput.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
 # Summary length Label
-summaryLengthLabel = QLabel("No. of sentences in the summary", window)
-summaryLengthLabel.setFixedSize(350, 50)
+summaryLengthLabel = QLabel("Summary Length", window)
+summaryLengthLabel.setFixedSize(200, 50)
 summaryLengthLabel.move(50, 100)
 summaryLengthLabel.setFont(font)
 summaryLengthLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
 # Summary length Input
-summaryLengthInput = QLineEdit(window)
-summaryLengthInput.setFixedSize(300, 50)
-summaryLengthInput.move(400, 100)
-summaryLengthInput.setFont(font)
-summaryLengthInput.setAlignment(Qt.AlignmentFlag.AlignCenter)
+# Radio Buttons
+summaryLengthShort = QRadioButton("Short", window)
+summaryLengthShort.setFixedSize(150, 50)
+summaryLengthShort.move(250, 100)
+summaryLengthShort.setFont(font)
+summaryLengthMedium = QRadioButton("Medium", window)
+summaryLengthMedium.setFixedSize(150, 50)
+summaryLengthMedium.move(400, 100)
+summaryLengthMedium.setFont(font)
+summaryLengthMedium.setChecked(True)
+summaryLengthLong = QRadioButton("Long", window)
+summaryLengthLong.setFixedSize(150, 50)
+summaryLengthLong.move(550, 100)
+summaryLengthLong.setFont(font)
+# Grouping the buttons
+summaryLengthInputGroup = QButtonGroup(window)
+summaryLengthInputGroup.addButton(summaryLengthShort)
+summaryLengthInputGroup.addButton(summaryLengthMedium)
+summaryLengthInputGroup.addButton(summaryLengthLong)
 
 # Summarize Button
 summarize = QPushButton("Summarize", window)
