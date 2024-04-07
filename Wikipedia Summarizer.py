@@ -13,12 +13,17 @@ from nltk import sent_tokenize, word_tokenize
 from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
 from collections import Counter
-from gensim.models import Word2Vec
+from gensim.models import Word2Vec, LdaModel
+from gensim.corpora import Dictionary
 from sklearn.metrics.pairwise import cosine_similarity
 
 # Data Visualization
+import numpy as np
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
+from sklearn.metrics import silhouette_score
+from sklearn.cluster import KMeans
+from sklearn.manifold import TSNE
 
 def summary():
     link = linkInput.text()
@@ -107,8 +112,52 @@ def summary():
     plt.imshow(wordcloud, interpolation = "bilinear")
     plt.axis("off")
     wordcloud.to_file("wordcloud.png")
-    pixmap = QPixmap("wordcloud.png")
-    wordCloudOutput.setPixmap(pixmap)
+    wordcloudPixmap = QPixmap("wordcloud.png")
+    wordCloudOutput.setPixmap(wordcloudPixmap)
+
+    # Cluster Graph
+    sentenceEmbeddingsArray = np.array(sentenceEmbeddings)
+    # Number of Clusters
+    silhouetteScores = []
+    for k in range(2, 10):
+        kmeans = KMeans(n_clusters = k, random_state = 42, n_init = 10)
+        kmeans.fit(sentenceEmbeddings)
+        score = silhouette_score(sentenceEmbeddingsArray, kmeans.labels_)
+        silhouetteScores.append(score)
+    numClusters = silhouetteScores.index(max(silhouetteScores)) + 2
+    clusterLabels = kmeans.labels_
+    # Perform dimensionality reduction using t-SNE
+    tsne = TSNE(n_components = 2, random_state = 42)
+    embeddedSentences = tsne.fit_transform(sentenceEmbeddingsArray)
+    # Extract X and Y coordinates
+    x = embeddedSentences[:, 0]
+    y = embeddedSentences[:, 1]
+    # Plot the clusters
+    myDPI = 96
+    plt.figure(figsize = (400 / myDPI, 400 / myDPI), dpi = myDPI)
+    for clusterNum in range(numClusters):
+        plt.scatter(x[clusterLabels == clusterNum], y[clusterLabels == clusterNum], label = f"Cluster {clusterNum + 1}")
+    plt.xlabel('Dimension 1')
+    plt.ylabel('Dimension 2')
+    plt.legend()
+    plt.title("t-SNE Visualization of Clusters")
+    plt.savefig("clustering.png", format = "png")
+    clusteringPixmap = QPixmap("clustering.png")
+    clusteringGraphOutput.setPixmap(clusteringPixmap)
+
+    # Topic Identification
+    numTopics = numClusters
+    if numTopics < 5:
+        numTopics = 5
+    dictionary = Dictionary(preprocessedSentences)
+    corpus = [dictionary.doc2bow(sent) for sent in preprocessedSentences]
+    # Training the LDA Model
+    ldaModel = LdaModel(corpus, num_topics = numTopics, id2word = dictionary, passes = 20)
+    # Print the topics
+    topics = ldaModel.print_topics(num_words = numTopics)
+    topicWords = [re.findall(r'"([^"]*)"', topic[1]) for topic in topics]
+    topicIdentification = "\n".join(topicWords[0])
+    topicIdentificationOutput.setText(topicIdentification)
 
 wikipediaSummarizer = QApplication([])
 
@@ -135,6 +184,7 @@ linkInput.setFixedSize(550, 50)
 linkInput.move(150, 50)
 linkInput.setFont(font)
 linkInput.setAlignment(Qt.AlignmentFlag.AlignCenter)
+linkInput.setStyleSheet('border: 1px solid black;')
 
 # Summary length Label
 summaryLengthLabel = QLabel("Summary Length", window)
@@ -177,6 +227,7 @@ pageTitleOutput.setFixedSize(650, 50)
 pageTitleOutput.move(50, 250)
 pageTitleOutput.setFont(font)
 pageTitleOutput.setAlignment(Qt.AlignmentFlag.AlignCenter)
+pageTitleOutput.setStyleSheet('border: 1px solid black;')
 
 # Summary Content
 summaryContentOutput = QTextEdit(window)
@@ -184,6 +235,7 @@ summaryContentOutput.setFixedSize(650, 550)
 summaryContentOutput.move(50, 300)
 summaryContentOutput.setFont(font)
 summaryContentOutput.setAlignment(Qt.AlignmentFlag.AlignJustify)
+summaryContentOutput.setStyleSheet('border: 1px solid black;')
 summaryContentOutput.setReadOnly(True)
 
 # Top Words Table
@@ -201,6 +253,29 @@ topWordsTable.resizeRowsToContents()
 wordCloudOutput = QLabel(window)
 wordCloudOutput.setFixedSize(400, 400)
 wordCloudOutput.move(1150, 50)
+wordCloudOutput.setStyleSheet('border: 1px solid black;')
+
+# Topic Identification Label
+topicIdentificationLabel = QLabel("Topic Identification", window)
+topicIdentificationLabel.setFixedSize(400, 50)
+topicIdentificationLabel.move(750, 450)
+topicIdentificationLabel.setFont(font)
+topicIdentificationLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
+topicIdentificationLabel.setStyleSheet('border: 1px solid black;')
+
+# Topic Identification Output
+topicIdentificationOutput = QTextEdit(window)
+topicIdentificationOutput.setFixedSize(400, 350)
+topicIdentificationOutput.move(750, 500)
+topicIdentificationOutput.setFont(font)
+topicIdentificationOutput.setStyleSheet('border: 1px solid black;')
+topicIdentificationOutput.setReadOnly(True)
+
+# Clustering Graph Output
+clusteringGraphOutput = QLabel(window)
+clusteringGraphOutput.setFixedSize(400, 400)
+clusteringGraphOutput.move(1150, 450)
+clusteringGraphOutput.setStyleSheet('border: 1px solid black;')
 
 window.show()
 
