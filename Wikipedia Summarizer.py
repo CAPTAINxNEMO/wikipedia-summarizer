@@ -145,7 +145,7 @@ def summary():
     clusteringPixmap = QPixmap("clustering.png")
     clusteringGraphOutput.setPixmap(clusteringPixmap)
 
-    # Topic Identification
+    # Topic Modelling
     numTopics = numClusters
     if numTopics < 5:
         numTopics = 5
@@ -155,9 +155,13 @@ def summary():
     ldaModel = LdaModel(corpus, num_topics = numTopics, id2word = dictionary, passes = 20)
     # Print the topics
     topics = ldaModel.print_topics(num_words = numTopics)
-    topicWords = [re.findall(r'"([^"]*)"', topic[1]) for topic in topics]
-    topicIdentification = "\n".join(topicWords[0])
-    topicIdentificationOutput.setText(topicIdentification)
+    topicModellings = []
+    for topicIndex, topic in enumerate(topics):
+        topicWords = [word for word, _ in ldaModel.show_topic(topicIndex)]
+        topicModelling = f"Topic {topicIndex + 1}: {", ".join(topicWords)}"
+        topicModellings.append(topicModelling)
+    allTopicModellings = "\n\n".join(topicModellings)
+    topicModellingOutput.setText(allTopicModellings)
 
 wikipediaSummarizer = QApplication([])
 
@@ -255,21 +259,22 @@ wordCloudOutput.setFixedSize(400, 400)
 wordCloudOutput.move(1150, 50)
 wordCloudOutput.setStyleSheet('border: 1px solid black;')
 
-# Topic Identification Label
-topicIdentificationLabel = QLabel("Topic Identification", window)
-topicIdentificationLabel.setFixedSize(400, 50)
-topicIdentificationLabel.move(750, 450)
-topicIdentificationLabel.setFont(font)
-topicIdentificationLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
-topicIdentificationLabel.setStyleSheet('border: 1px solid black;')
+# Topic Modelling Label
+topicModellingLabel = QLabel("Topic Modelling", window)
+topicModellingLabel.setFixedSize(400, 50)
+topicModellingLabel.move(750, 450)
+topicModellingLabel.setFont(font)
+topicModellingLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
+topicModellingLabel.setStyleSheet('border: 1px solid black;')
 
-# Topic Identification Output
-topicIdentificationOutput = QTextEdit(window)
-topicIdentificationOutput.setFixedSize(400, 350)
-topicIdentificationOutput.move(750, 500)
-topicIdentificationOutput.setFont(font)
-topicIdentificationOutput.setStyleSheet('border: 1px solid black;')
-topicIdentificationOutput.setReadOnly(True)
+# Topic Modelling Output
+topicModellingOutput = QTextEdit(window)
+topicModellingOutput.setFixedSize(400, 350)
+topicModellingOutput.move(750, 500)
+topicModellingOutput.setFont(font)
+topicModellingOutput.setAlignment(Qt.AlignmentFlag.AlignJustify)
+topicModellingOutput.setStyleSheet('border: 1px solid black;')
+topicModellingOutput.setReadOnly(True)
 
 # Clustering Graph Output
 clusteringGraphOutput = QLabel(window)
