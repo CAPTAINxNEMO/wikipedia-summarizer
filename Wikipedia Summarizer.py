@@ -56,8 +56,14 @@ def summary():
     formattedContent = re.sub(r'\s+', ' ', formattedContent)
 
     # Tokenization and Preprocessing
-    sentences = sent_tokenize(content)
     stopWords = stopwords.words("english")
+    sentences = sent_tokenize(content)
+    tokenizedContent = sent_tokenize(formattedContent)
+    tokenizedSentences = [word_tokenize(sentence) for sentence in tokenizedContent]
+    filteredSentences = []
+    for sentence in tokenizedSentences:
+        filteredSentence = [word for word in sentence if word not in stopWords]
+        filteredSentences.append(filteredSentence)
     ps = PorterStemmer()
 
     preprocessedSentences = []
@@ -149,8 +155,8 @@ def summary():
     numTopics = numClusters
     if numTopics < 5:
         numTopics = 5
-    dictionary = Dictionary(preprocessedSentences)
-    corpus = [dictionary.doc2bow(sent) for sent in preprocessedSentences]
+    dictionary = Dictionary(filteredSentences)
+    corpus = [dictionary.doc2bow(sent) for sent in tokenizedSentences]
     # Training the LDA Model
     ldaModel = LdaModel(corpus, num_topics = numTopics, id2word = dictionary, passes = 20)
     # Print the topics
