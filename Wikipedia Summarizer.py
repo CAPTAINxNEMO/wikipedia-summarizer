@@ -29,22 +29,22 @@ def summary():
     link = linkInput.text()
     # Summary Length
     selectedRadioButton = summaryLengthInputGroup.checkedButton().text()
-    if selectedRadioButton == "Short":
+    if selectedRadioButton == 'Short':
         summaryLength = 4
-    elif selectedRadioButton == "Medium":
+    elif selectedRadioButton == 'Medium':
         summaryLength = 7
     else:
         summaryLength = 10
 
     webData = urlopen(link)
-    data = bs(webData, "lxml")
+    data = bs(webData, 'lxml')
 
-    title = data.find("span", class_ = "mw-page-title-main")
+    title = data.find('span', class_ = 'mw-page-title-main')
     pageTitle = title.text
     pageTitleOutput.setText(pageTitle)
 
-    paragraphs = data.find_all("p")
-    content = ""
+    paragraphs = data.find_all('p')
+    content = ''
     for p in paragraphs:
         content += p.text
 
@@ -56,7 +56,7 @@ def summary():
     formattedContent = re.sub(r'\s+', ' ', formattedContent)
 
     # Tokenization and Preprocessing
-    stopWords = stopwords.words("english")
+    stopWords = stopwords.words('english')
     sentences = sent_tokenize(content)
     tokenizedContent = sent_tokenize(formattedContent)
     tokenizedSentences = [word_tokenize(sentence) for sentence in tokenizedContent]
@@ -98,7 +98,7 @@ def summary():
     topSentences = sorted(range(len(scores)), key = lambda i: scores[i], reverse = True)[:summaryLength]
     summaryContent = [sentences[i] for i in topSentences]
     # Print the summary
-    summaryContentOutput.setText(" ".join(summaryContent))
+    summaryContentOutput.setText(' '.join(summaryContent))
 
     # Most occurring words
     # Word Frequency Calculation
@@ -114,11 +114,11 @@ def summary():
         topWordsTable.setItem(i, 1, frequencyItem)
     
     # WordCloud Generation
-    wordcloud = WordCloud(height = 400, width = 400, background_color = "white", stopwords = stopWords).generate(formattedContent)
-    plt.imshow(wordcloud, interpolation = "bilinear")
-    plt.axis("off")
-    wordcloud.to_file("wordcloud.png")
-    wordcloudPixmap = QPixmap("wordcloud.png")
+    wordcloud = WordCloud(height = 400, width = 400, background_color = 'white', stopwords = stopWords).generate(formattedContent)
+    plt.imshow(wordcloud, interpolation = 'bilinear')
+    plt.axis('off')
+    wordcloud.to_file('wordcloud.png')
+    wordcloudPixmap = QPixmap('wordcloud.png')
     wordCloudOutput.setPixmap(wordcloudPixmap)
 
     # Cluster Graph
@@ -142,13 +142,13 @@ def summary():
     myDPI = 96
     plt.figure(figsize = (400 / myDPI, 400 / myDPI), dpi = myDPI)
     for clusterNum in range(numClusters):
-        plt.scatter(x[clusterLabels == clusterNum], y[clusterLabels == clusterNum], label = f"Cluster {clusterNum + 1}")
+        plt.scatter(x[clusterLabels == clusterNum], y[clusterLabels == clusterNum], label = f'Cluster {clusterNum + 1}')
     plt.xlabel('Dimension 1')
     plt.ylabel('Dimension 2')
     plt.legend()
-    plt.title("t-SNE Visualization of Clusters")
-    plt.savefig("clustering.png", format = "png")
-    clusteringPixmap = QPixmap("clustering.png")
+    plt.title('t-SNE Visualization of Clusters')
+    plt.savefig('clustering.png', format = 'png')
+    clusteringPixmap = QPixmap('clustering.png')
     clusteringGraphOutput.setPixmap(clusteringPixmap)
 
     # Topic Modelling
@@ -164,25 +164,25 @@ def summary():
     topicModellings = []
     for topicIndex, topic in enumerate(topics):
         topicWords = [word for word, _ in ldaModel.show_topic(topicIndex)]
-        topicModelling = f"Topic {topicIndex + 1}: {", ".join(topicWords)}"
+        topicModelling = f'Topic {topicIndex + 1}: {', '.join(topicWords)}'
         topicModellings.append(topicModelling)
-    allTopicModellings = "\n\n".join(topicModellings)
+    allTopicModellings = '\n\n'.join(topicModellings)
     topicModellingOutput.setText(allTopicModellings)
 
 wikipediaSummarizer = QApplication([])
 
 # Create a window
 window = QMainWindow()
-window.setWindowTitle("Wikipedia Summarizer")
+window.setWindowTitle('Wikipedia Summarizer')
 window.setGeometry(0, 0, 1600, 900)
 window.setFixedSize(1600, 900)
 
 # Font Attributes
-font = QFont("Courier")
+font = QFont('Courier')
 font.setPixelSize(18)
 
 # Link Label
-linkLabel = QLabel("Link", window)
+linkLabel = QLabel('Link', window)
 linkLabel.setFixedSize(100, 50)
 linkLabel.move(50, 50)
 linkLabel.setFont(font)
@@ -197,7 +197,7 @@ linkInput.setAlignment(Qt.AlignmentFlag.AlignCenter)
 linkInput.setStyleSheet('border: 1px solid black;')
 
 # Summary length Label
-summaryLengthLabel = QLabel("Summary Length", window)
+summaryLengthLabel = QLabel('Summary Length', window)
 summaryLengthLabel.setFixedSize(200, 50)
 summaryLengthLabel.move(50, 100)
 summaryLengthLabel.setFont(font)
@@ -205,16 +205,16 @@ summaryLengthLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
 # Summary length Input
 # Radio Buttons
-summaryLengthShort = QRadioButton("Short", window)
+summaryLengthShort = QRadioButton('Short', window)
 summaryLengthShort.setFixedSize(150, 50)
 summaryLengthShort.move(250, 100)
 summaryLengthShort.setFont(font)
-summaryLengthMedium = QRadioButton("Medium", window)
+summaryLengthMedium = QRadioButton('Medium', window)
 summaryLengthMedium.setFixedSize(150, 50)
 summaryLengthMedium.move(400, 100)
 summaryLengthMedium.setFont(font)
 summaryLengthMedium.setChecked(True)
-summaryLengthLong = QRadioButton("Long", window)
+summaryLengthLong = QRadioButton('Long', window)
 summaryLengthLong.setFixedSize(150, 50)
 summaryLengthLong.move(550, 100)
 summaryLengthLong.setFont(font)
@@ -225,7 +225,7 @@ summaryLengthInputGroup.addButton(summaryLengthMedium)
 summaryLengthInputGroup.addButton(summaryLengthLong)
 
 # Summarize Button
-summarize = QPushButton("Summarize", window)
+summarize = QPushButton('Summarize', window)
 summarize.setFixedSize(150, 50)
 summarize.move(300, 150)
 summarize.setFont(font)
@@ -254,7 +254,7 @@ topWordsTable.setFixedSize(400, 400)
 topWordsTable.move(750, 50)
 topWordsTable.setFont(font)
 topWordsTable.horizontalHeader().setStyleSheet("QHeaderView::section {height: 34px; font-family: 'Courier'; font-size: 18px; font-weight: bold}")
-topWordsTable.setHorizontalHeaderLabels(["Word", "Frequency"])
+topWordsTable.setHorizontalHeaderLabels(['Word', 'Frequency'])
 topWordsTable.setColumnWidth(0, 184)
 topWordsTable.setColumnWidth(1, 184)
 topWordsTable.resizeRowsToContents()
@@ -266,7 +266,7 @@ wordCloudOutput.move(1150, 50)
 wordCloudOutput.setStyleSheet('border: 1px solid black;')
 
 # Topic Modelling Label
-topicModellingLabel = QLabel("Topic Modelling", window)
+topicModellingLabel = QLabel('Topic Modelling', window)
 topicModellingLabel.setFixedSize(400, 50)
 topicModellingLabel.move(750, 450)
 topicModellingLabel.setFont(font)
