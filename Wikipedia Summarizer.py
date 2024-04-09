@@ -156,7 +156,7 @@ def summary():
     if numTopics < 5:
         numTopics = 5
     dictionary = Dictionary(filteredSentences)
-    corpus = [dictionary.doc2bow(sent) for sent in tokenizedSentences]
+    corpus = [dictionary.doc2bow(sent) for sent in filteredSentences]
     # Training the LDA Model
     ldaModel = LdaModel(corpus, num_topics = numTopics, id2word = dictionary, passes = 20)
     # Print the topics
