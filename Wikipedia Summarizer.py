@@ -11,7 +11,8 @@ from bs4 import BeautifulSoup as bs
 import re
 from nltk import sent_tokenize, word_tokenize
 from nltk.corpus import stopwords
-from nltk.stem import PorterStemmer
+import spacy
+
 from collections import Counter
 from gensim.models import Word2Vec, LdaModel
 from gensim.corpora import Dictionary
@@ -57,14 +58,8 @@ def summary():
 
     # Tokenization and Preprocessing
     stopWords = stopwords.words('english')
+    spacyLoad = spacy.load('en_core_web_sm')
     sentences = sent_tokenize(content)
-    tokenizedContent = sent_tokenize(formattedContent)
-    tokenizedSentences = [word_tokenize(sentence) for sentence in tokenizedContent]
-    filteredSentences = []
-    for sentence in tokenizedSentences:
-        filteredSentence = [word for word in sentence if word not in stopWords]
-        filteredSentences.append(filteredSentence)
-    ps = PorterStemmer()
 
     preprocessedSentences = []
     for sentence in sentences:
@@ -72,9 +67,11 @@ def summary():
         preprocessedSentence = re.sub(r'\s+', ' ', preprocessedSentence)
         preprocessedSentence = re.sub('[^a-zA-Z]', ' ', preprocessedSentence)
         preprocessedSentence = re.sub(r'\s+', ' ', preprocessedSentence)
-        words = word_tokenize(sentence.lower())
-        words = [ps.stem(word) for word in words if word.isalnum() and word not in stopWords]
+        doc = spacyLoad(preprocessedSentence.lower())
+        words = [token.lemma_ for token in doc if token.is_alpha and token.lemma_ not in stopWords]
         preprocessedSentences.append(words)
+    
+    lemmatizedContent = ' '.join([' '.join(sentence) for sentence in preprocessedSentences])
     
     # Train word embeddings
     model = Word2Vec(preprocessedSentences, vector_size = 300, window = 5, min_count = 1, workers = 6)
@@ -102,7 +99,7 @@ def summary():
 
     # Most occurring words
     # Word Frequency Calculation
-    wordFrequencies = Counter(word for word in word_tokenize(formattedContent) if word not in stopWords)
+    wordFrequencies = Counter(word for word in word_tokenize(lemmatizedContent) if word not in stopWords)
     # Sorting
     sortedWordFrequencies = sorted(wordFrequencies.items(), key = lambda item: item[1], reverse = True)
     topWords = sortedWordFrequencies[:13]
@@ -155,8 +152,8 @@ def summary():
     numTopics = numClusters
     if numTopics < 5:
         numTopics = 5
-    dictionary = Dictionary(filteredSentences)
-    corpus = [dictionary.doc2bow(sent) for sent in filteredSentences]
+    dictionary = Dictionary(preprocessedSentences)
+    corpus = [dictionary.doc2bow(sent) for sent in preprocessedSentences]
     # Training the LDA Model
     ldaModel = LdaModel(corpus, num_topics = numTopics, id2word = dictionary, passes = 20)
     # Print the topics
