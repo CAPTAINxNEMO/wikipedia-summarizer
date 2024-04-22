@@ -52,13 +52,16 @@ def summary():
     # Removing Square Brackets and Extra Spaces
     content = re.sub(r'\[[0-9]*\]', ' ', content)
     content = re.sub(r'\s+', ' ', content)
+    # Removing Ordinal Indicators
+    content = re.sub(r'(?<=\d)(st|nd|rd|th)', '', content)
+    content = re.sub(r'\s+', ' ', content)
     # Removing special characters and digits
     formattedContent = re.sub('[^a-zA-Z]', ' ', content)
     formattedContent = re.sub(r'\s+', ' ', formattedContent)
 
     # Tokenization and Preprocessing
     stopWords = stopwords.words('english')
-    spacyLoad = spacy.load('en_core_web_sm')
+    spacyLoad = spacy.load('en_core_web_lg')
     sentences = sent_tokenize(content)
 
     preprocessedSentences = []
@@ -74,21 +77,21 @@ def summary():
     lemmatizedContent = ' '.join([' '.join(sentence) for sentence in preprocessedSentences])
     
     # Train word embeddings
-    model = Word2Vec(preprocessedSentences, vector_size = 300, window = 5, min_count = 1, workers = 6)
+    model = Word2Vec(preprocessedSentences, vector_size = 300, window = 5, min_count = 4, workers = 6)
 
     # Compute sentence embeddings
     sentenceEmbeddings = []
     for sent in preprocessedSentences:
         sentEmbedding = [model.wv[word] for word in sent if word in model.wv]
         if sentEmbedding:
-            sentenceEmbeddings.append(sum(sentEmbedding) / len(sentEmbedding))
+            sentenceEmbeddings.append(np.mean(sentEmbedding, axis = 0))
         else:
-            # If no word found in vocabulary, use zero vector
-            sentenceEmbeddings.append([0] * 100)
+            sentenceEmbeddings.append(np.zeros(model.vector_size))
+    sentenceEmbeddingsArray = np.array(sentenceEmbeddings)
     
     # Summary
     # Calculate sentence similarity using cosine similarity
-    similarityMatrix = cosine_similarity(sentenceEmbeddings)
+    similarityMatrix = cosine_similarity(sentenceEmbeddingsArray)
     # LexRank algorithm to rank sentences
     scores = [sum(similarityMatrix[i]) for i in range(len(similarityMatrix))]
     # Select top N sentences based on scores
@@ -119,7 +122,6 @@ def summary():
     wordCloudOutput.setPixmap(wordcloudPixmap)
 
     # Cluster Graph
-    sentenceEmbeddingsArray = np.array(sentenceEmbeddings)
     # Number of Clusters
     silhouetteScores = []
     for k in range(2, 10):
