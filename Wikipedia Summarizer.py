@@ -1,5 +1,5 @@
 # GUI
-from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QLineEdit, QRadioButton, QButtonGroup, QPushButton, QTextEdit, QTableWidget, QTableWidgetItem
+from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QLineEdit, QRadioButton, QButtonGroup, QPushButton, QTextEdit, QTableWidget, QTableWidgetItem, QProgressBar
 from PyQt6.QtGui import QFont, QPixmap
 from PyQt6.QtCore import Qt
 
@@ -27,6 +27,11 @@ from sklearn.cluster import KMeans
 from sklearn.manifold import TSNE
 
 def summary():
+    progressBar.reset()
+
+    progress = 0
+    progressBar.setValue(progress)
+
     link = linkInput.text()
     # Summary Length
     selectedRadioButton = summaryLengthInputGroup.checkedButton().text()
@@ -44,10 +49,16 @@ def summary():
     pageTitle = title.text
     pageTitleOutput.setText(pageTitle)
 
+    progress += 5
+    progressBar.setValue(progress)
+
     paragraphs = data.find_all('p')
     content = ''
     for p in paragraphs:
         content += p.text
+    
+    progress += 5
+    progressBar.setValue(progress)
 
     # Removing Square Brackets and Extra Spaces
     content = re.sub(r'\[[0-9]*\]', ' ', content)
@@ -58,6 +69,9 @@ def summary():
     # Removing special characters and digits
     formattedContent = re.sub('[^a-zA-Z]', ' ', content)
     formattedContent = re.sub(r'\s+', ' ', formattedContent)
+
+    progress += 5
+    progressBar.setValue(progress)
 
     # Tokenization and Preprocessing
     stopWords = stopwords.words('english')
@@ -75,9 +89,15 @@ def summary():
         preprocessedSentences.append(words)
     
     lemmatizedContent = ' '.join([' '.join(sentence) for sentence in preprocessedSentences])
+
+    progress += 15
+    progressBar.setValue(progress)
     
     # Train word embeddings
     model = Word2Vec(preprocessedSentences, vector_size = 300, window = 5, min_count = 4, workers = 6)
+
+    progress += 10
+    progressBar.setValue(progress)
 
     # Compute sentence embeddings
     sentenceEmbeddings = []
@@ -88,6 +108,9 @@ def summary():
         else:
             sentenceEmbeddings.append(np.zeros(model.vector_size))
     sentenceEmbeddingsArray = np.array(sentenceEmbeddings)
+
+    progress += 10
+    progressBar.setValue(progress)
     
     # Summary
     # Calculate sentence similarity using cosine similarity
@@ -99,6 +122,9 @@ def summary():
     summaryContent = [sentences[i] for i in topSentences]
     # Print the summary
     summaryContentOutput.setText(' '.join(summaryContent))
+
+    progress += 10
+    progressBar.setValue(progress)
 
     # Most occurring words
     # Word Frequency Calculation
@@ -112,7 +138,10 @@ def summary():
         frequencyItem.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
         topWordsTable.setItem(i, 0, QTableWidgetItem(topWord))
         topWordsTable.setItem(i, 1, frequencyItem)
-    
+
+    progress += 5
+    progressBar.setValue(progress)
+
     # WordCloud Generation
     wordcloud = WordCloud(height = 400, width = 400, background_color = 'white', stopwords = stopWords).generate(formattedContent)
     plt.imshow(wordcloud, interpolation = 'bilinear')
@@ -120,6 +149,9 @@ def summary():
     wordcloud.to_file('wordcloud.png')
     wordcloudPixmap = QPixmap('wordcloud.png')
     wordCloudOutput.setPixmap(wordcloudPixmap)
+
+    progress += 5
+    progressBar.setValue(progress)
 
     # Cluster Graph
     # Number of Clusters
@@ -150,6 +182,9 @@ def summary():
     clusteringPixmap = QPixmap('clustering.png')
     clusteringGraphOutput.setPixmap(clusteringPixmap)
 
+    progress += 20
+    progressBar.setValue(progress)
+
     # Topic Modeling
     numTopics = numClusters
     if numTopics < 5:
@@ -168,13 +203,16 @@ def summary():
     allTopicModelings = '\n\n'.join(topicModelings)
     topicModelingOutput.setText(allTopicModelings)
 
+    progress += 10
+    progressBar.setValue(progress)
+
 wikipediaSummarizer = QApplication([])
 
 # Create a window
 window = QMainWindow()
 window.setWindowTitle('Wikipedia Summarizer')
-window.setGeometry(0, 0, 1600, 900)
-window.setFixedSize(1600, 900)
+window.setGeometry(0, 0, 1600, 1000)
+window.setFixedSize(1600, 1000)
 
 # Font Attributes
 font = QFont('Courier')
@@ -286,6 +324,14 @@ clusteringGraphOutput = QLabel(window)
 clusteringGraphOutput.setFixedSize(400, 400)
 clusteringGraphOutput.move(1150, 450)
 clusteringGraphOutput.setStyleSheet('border: 1px solid black;')
+
+# Progress Bar
+progressBar = QProgressBar(window)
+progressBar.setFixedSize(1500, 50)
+progressBar.move(50, 900)
+progressBar.setFont(font)
+progressBar.setStyleSheet('QProgressBar {border: 1px solid black;text-align: center;} QProgressBar::chunk {background-color: #0000FF;}')
+progressBar.setRange(0, 100)
 
 window.show()
 
