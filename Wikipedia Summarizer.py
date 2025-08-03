@@ -5,13 +5,13 @@ from PyQt6.QtCore import Qt
 
 # Libraries for Web Scraping
 from urllib.request import urlopen
-from bs4 import BeautifulSoup as bs
+from bs4 import BeautifulSoup
 
 # Libraries for Text Preprocessing and Summarization
-import re
+from re import sub
 from nltk import sent_tokenize, word_tokenize
 from nltk.corpus import stopwords
-import spacy
+from spacy import load
 
 from collections import Counter
 from gensim.models import Word2Vec, LdaModel
@@ -19,9 +19,9 @@ from gensim.corpora import Dictionary
 from sklearn.metrics.pairwise import cosine_similarity
 
 # Data Visualization
-import numpy as np
+from numpy import mean, zeros, array
 from wordcloud import WordCloud
-import matplotlib.pyplot as plt
+from matplotlib.pyplot import imshow, axis, figure, scatter, xlabel, ylabel, legend, title, savefig
 from sklearn.metrics import silhouette_score
 from sklearn.cluster import KMeans
 from sklearn.manifold import TSNE
@@ -34,177 +34,191 @@ def summary():
 
     link = linkInput.text()
     # Summary Length
-    selectedRadioButton = summaryLengthInputGroup.checkedButton().text()
-    if selectedRadioButton == 'Short':
-        summaryLength = 4
-    elif selectedRadioButton == 'Medium':
-        summaryLength = 7
-    else:
-        summaryLength = 10
-
-    webData = urlopen(link)
-    data = bs(webData, 'lxml')
-
-    title = data.find('span', class_ = 'mw-page-title-main')
-    pageTitle = title.text
-    pageTitleOutput.setText(pageTitle)
-
-    progress += 5
-    progressBar.setValue(progress)
-
-    paragraphs = data.find_all('p')
-    content = ''
-    for p in paragraphs:
-        content += p.text
-    
-    progress += 5
-    progressBar.setValue(progress)
-
-    # Removing Square Brackets and Extra Spaces
-    content = re.sub(r'\[[0-9]*\]', ' ', content)
-    content = re.sub(r'\s+', ' ', content)
-    # Removing Ordinal Indicators
-    content = re.sub(r'(?<=\d)(st|nd|rd|th)', '', content)
-    content = re.sub(r'\s+', ' ', content)
-    # Removing special characters and digits
-    formattedContent = re.sub('[^a-zA-Z]', ' ', content)
-    formattedContent = re.sub(r'\s+', ' ', formattedContent)
-
-    progress += 5
-    progressBar.setValue(progress)
-
-    # Tokenization and Preprocessing
-    stopWords = stopwords.words('english')
-    spacyLoad = spacy.load('en_core_web_lg')
-    sentences = sent_tokenize(content)
-
-    preprocessedSentences = []
-    for sentence in sentences:
-        preprocessedSentence = re.sub(r'\[[0-9]*\]', ' ', sentence)
-        preprocessedSentence = re.sub(r'\s+', ' ', preprocessedSentence)
-        preprocessedSentence = re.sub('[^a-zA-Z]', ' ', preprocessedSentence)
-        preprocessedSentence = re.sub(r'\s+', ' ', preprocessedSentence)
-        doc = spacyLoad(preprocessedSentence.lower())
-        words = [token.lemma_ for token in doc if token.is_alpha and token.lemma_ not in stopWords]
-        preprocessedSentences.append(words)
-    
-    lemmatizedContent = ' '.join([' '.join(sentence) for sentence in preprocessedSentences])
-
-    progress += 15
-    progressBar.setValue(progress)
-    
-    # Train word embeddings
-    model = Word2Vec(preprocessedSentences, vector_size = 300, window = 5, min_count = 4, workers = 6)
-
-    progress += 10
-    progressBar.setValue(progress)
-
-    # Compute sentence embeddings
-    sentenceEmbeddings = []
-    for sent in preprocessedSentences:
-        sentEmbedding = [model.wv[word] for word in sent if word in model.wv]
-        if sentEmbedding:
-            sentenceEmbeddings.append(np.mean(sentEmbedding, axis = 0))
+    checkedButton = summaryLengthInputGroup.checkedButton()
+    if checkedButton is not None:
+        selectedRadioButton = checkedButton.text()
+        if selectedRadioButton == 'Short':
+            summaryLength = 4
+        elif selectedRadioButton == 'Medium':
+            summaryLength = 7
         else:
-            sentenceEmbeddings.append(np.zeros(model.vector_size))
-    sentenceEmbeddingsArray = np.array(sentenceEmbeddings)
+            summaryLength = 10
+    else:
+        summaryLength = 7  # Default to Medium if no button is checked
 
-    progress += 10
-    progressBar.setValue(progress)
-    
-    # Summary
-    # Calculate sentence similarity using cosine similarity
-    similarityMatrix = cosine_similarity(sentenceEmbeddingsArray)
-    # LexRank algorithm to rank sentences
-    scores = [sum(similarityMatrix[i]) for i in range(len(similarityMatrix))]
-    # Select top N sentences based on scores
-    topSentences = sorted(range(len(scores)), key = lambda i: scores[i], reverse = True)[:summaryLength]
-    summaryContent = [sentences[i] for i in topSentences]
-    # Print the summary
-    summaryContentOutput.setText(' '.join(summaryContent))
+    try:
+        webData = urlopen(link)
+        data = BeautifulSoup(webData, 'lxml')
 
-    progress += 10
-    progressBar.setValue(progress)
+        page_title = data.find('span', class_ = 'mw-page-title-main')
+        if page_title:
+            pageTitle = page_title.text
+        else:
+            pageTitle = 'No Title Found'
 
-    # Most occurring words
-    # Word Frequency Calculation
-    wordFrequencies = Counter(word for word in word_tokenize(lemmatizedContent) if word not in stopWords)
-    # Sorting
-    sortedWordFrequencies = sorted(wordFrequencies.items(), key = lambda item: item[1], reverse = True)
-    topWords = sortedWordFrequencies[:13]
-    # Populating the table
-    for i, (topWord, frequency) in enumerate(topWords):
-        frequencyItem = QTableWidgetItem(str(frequency))
-        frequencyItem.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-        topWordsTable.setItem(i, 0, QTableWidgetItem(topWord))
-        topWordsTable.setItem(i, 1, frequencyItem)
+        pageTitleOutput.setText(pageTitle)
 
-    progress += 5
-    progressBar.setValue(progress)
+        progress += 5
+        progressBar.setValue(progress)
 
-    # WordCloud Generation
-    wordcloud = WordCloud(height = 400, width = 400, background_color = 'white', stopwords = stopWords).generate(formattedContent)
-    plt.imshow(wordcloud, interpolation = 'bilinear')
-    plt.axis('off')
-    wordcloud.to_file('wordcloud.png')
-    wordcloudPixmap = QPixmap('wordcloud.png')
-    wordCloudOutput.setPixmap(wordcloudPixmap)
+        paragraphs = data.find_all('p')
+        content = ''
+        for p in paragraphs:
+            content += p.text
 
-    progress += 5
-    progressBar.setValue(progress)
+        # Removing Square Brackets and Extra Spaces
+        content = sub(r'\[[0-9a-zA-Z]*\]', ' ', content)
+        content = sub(r'\s+', ' ', content)
+        # Removing Ordinal Indicators
+        content = sub(r'(?<=\d)(st|nd|rd|th)', '', content)
+        content = sub(r'\s+', ' ', content)
+        # Removing special characters and digits
+        formattedContent = sub('[^a-zA-Z]', ' ', content)
+        formattedContent = sub(r'\s+', ' ', formattedContent)
 
-    # Cluster Graph
-    # Number of Clusters
-    silhouetteScores = []
-    for k in range(2, 10):
-        kmeans = KMeans(n_clusters = k, random_state = 42, n_init = 10)
-        kmeans.fit(sentenceEmbeddings)
-        score = silhouette_score(sentenceEmbeddingsArray, kmeans.labels_)
-        silhouetteScores.append(score)
-    numClusters = silhouetteScores.index(max(silhouetteScores)) + 2
-    clusterLabels = kmeans.labels_
-    # Perform dimensionality reduction using t-SNE
-    tsne = TSNE(n_components = 2, random_state = 42)
-    embeddedSentences = tsne.fit_transform(sentenceEmbeddingsArray)
-    # Extract X and Y coordinates
-    x = embeddedSentences[:, 0]
-    y = embeddedSentences[:, 1]
-    # Plot the clusters
-    myDPI = 96
-    plt.figure(figsize = (400 / myDPI, 400 / myDPI), dpi = myDPI)
-    for clusterNum in range(numClusters):
-        plt.scatter(x[clusterLabels == clusterNum], y[clusterLabels == clusterNum], label = f'Cluster {clusterNum + 1}')
-    plt.xlabel('Dimension 1')
-    plt.ylabel('Dimension 2')
-    plt.legend()
-    plt.title('t-SNE Visualization of Clusters')
-    plt.savefig('clustering.png', format = 'png')
-    clusteringPixmap = QPixmap('clustering.png')
-    clusteringGraphOutput.setPixmap(clusteringPixmap)
+        progress += 5
+        progressBar.setValue(progress)
 
-    progress += 20
-    progressBar.setValue(progress)
+        progress += 5
+        progressBar.setValue(progress)
 
-    # Topic Modeling
-    numTopics = numClusters
-    if numTopics < 5:
-        numTopics = 5
-    dictionary = Dictionary(preprocessedSentences)
-    corpus = [dictionary.doc2bow(sent) for sent in preprocessedSentences]
-    # Training the LDA Model
-    ldaModel = LdaModel(corpus, num_topics = numTopics, id2word = dictionary, passes = 20)
-    # Print the topics
-    topics = ldaModel.print_topics(num_words = numTopics)
-    topicModelings = []
-    for topicIndex, topic in enumerate(topics):
-        topicWords = [word for word, _ in ldaModel.show_topic(topicIndex)]
-        topicModeling = f'Topic {topicIndex + 1}: {', '.join(topicWords)}'
-        topicModelings.append(topicModeling)
-    allTopicModelings = '\n\n'.join(topicModelings)
-    topicModelingOutput.setText(allTopicModelings)
+        # Tokenization and Preprocessing
+        stopWords = stopwords.words('english')
+        spacyLoad = load('en_core_web_lg')
+        sentences = sent_tokenize(content)
 
-    progress += 10
-    progressBar.setValue(progress)
+        preprocessedSentences = []
+        for sentence in sentences:
+            preprocessedSentence = sub(r'\[[0-9a-zA-Z]*\]', ' ', sentence)
+            preprocessedSentence = sub(r'\s+', ' ', preprocessedSentence)
+            preprocessedSentence = sub('[^a-zA-Z]', ' ', preprocessedSentence)
+            preprocessedSentence = sub(r'\s+', ' ', preprocessedSentence)
+            doc = spacyLoad(preprocessedSentence.lower())
+            words = [token.lemma_ for token in doc if token.is_alpha and token.lemma_ not in stopWords]
+            preprocessedSentences.append(words)
+        
+        lemmatizedContent = ' '.join([' '.join(sentence) for sentence in preprocessedSentences])
+
+        progress += 15
+        progressBar.setValue(progress)
+        
+        # Train word embeddings
+        model = Word2Vec(preprocessedSentences, vector_size = 300, window = 5, min_count = 4, workers = 6)
+
+        progress += 10
+        progressBar.setValue(progress)
+
+        # Compute sentence embeddings
+        sentenceEmbeddings = []
+        for sent in preprocessedSentences:
+            sentEmbedding = [model.wv[word] for word in sent if word in model.wv]
+            if sentEmbedding:
+                sentenceEmbeddings.append(mean(sentEmbedding, axis = 0))
+            else:
+                sentenceEmbeddings.append(zeros(model.vector_size))
+        sentenceEmbeddingsArray = array(sentenceEmbeddings)
+
+        progress += 10
+        progressBar.setValue(progress)
+
+        # Summary
+        # Calculate sentence similarity using cosine similarity
+        similarityMatrix = cosine_similarity(sentenceEmbeddingsArray)
+        # LexRank algorithm to rank sentences
+        scores = [sum(similarityMatrix[i]) for i in range(len(similarityMatrix))]
+        # Select top N sentences based on scores
+        topSentences = sorted(range(len(scores)), key = lambda i: scores[i], reverse = True)[:summaryLength]
+        summaryContent = [sentences[i] for i in topSentences]
+        # Print the summary
+        summaryContentOutput.setText(' '.join(summaryContent))
+
+        progress += 10
+        progressBar.setValue(progress)
+
+        # Most occurring words
+        # Word Frequency Calculation
+        wordFrequencies = Counter(word for word in word_tokenize(lemmatizedContent) if word not in stopWords)
+        # Sorting
+        sortedWordFrequencies = sorted(wordFrequencies.items(), key = lambda item: item[1], reverse = True)
+        topWords = sortedWordFrequencies[:13]
+        # Populating the table
+        for i, (topWord, frequency) in enumerate(topWords):
+            frequencyItem = QTableWidgetItem(str(frequency))
+            frequencyItem.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            topWordsTable.setItem(i, 0, QTableWidgetItem(topWord))
+            topWordsTable.setItem(i, 1, frequencyItem)
+
+        progress += 5
+        progressBar.setValue(progress)
+
+        # WordCloud Generation
+        wordcloud = WordCloud(height = 400, width = 400, background_color = 'white', stopwords = stopWords).generate(formattedContent)
+        imshow(wordcloud, interpolation = 'bilinear')
+        axis('off')
+        wordcloud.to_file('wordcloud.png')
+        wordcloudPixmap = QPixmap('wordcloud.png')
+        wordCloudOutput.setPixmap(wordcloudPixmap)
+
+        progress += 5
+        progressBar.setValue(progress)
+
+        # Cluster Graph
+        # Number of Clusters
+        silhouetteScores = []
+        kmeansModels = []
+        for k in range(2, 10):
+            kmeans = KMeans(n_clusters = k, random_state = 42, n_init = 10)
+            kmeans.fit(sentenceEmbeddings)
+            score = silhouette_score(sentenceEmbeddingsArray, kmeans.labels_)
+            silhouetteScores.append(score)
+            kmeansModels.append(kmeans)
+        numClusters = silhouetteScores.index(max(silhouetteScores)) + 2
+        bestKMeans = kmeansModels[silhouetteScores.index(max(silhouetteScores))]
+        clusterLabels = bestKMeans.labels_
+        # Perform dimensionality reduction using t-SNE
+        tsne = TSNE(n_components = 2, random_state = 42)
+        embeddedSentences = tsne.fit_transform(sentenceEmbeddingsArray)
+        # Extract X and Y coordinates
+        x = embeddedSentences[:, 0]
+        y = embeddedSentences[:, 1]
+        # Plot the clusters
+        myDPI = 96
+        figure(figsize = (400 / myDPI, 400 / myDPI), dpi = myDPI)
+        for clusterNum in range(numClusters):
+            scatter(x[clusterLabels == clusterNum], y[clusterLabels == clusterNum], label = f'Cluster {clusterNum + 1}')
+        xlabel('Dimension 1')
+        ylabel('Dimension 2')
+        legend()
+        title('t-SNE Visualization of Clusters')
+        savefig('clustering.png', format = 'png', bbox_inches = 'tight', pad_inches = 0.1)
+        clusteringPixmap = QPixmap('clustering.png')
+        clusteringGraphOutput.setPixmap(clusteringPixmap)
+
+        progress += 20
+        progressBar.setValue(progress)
+
+        # Topic Modeling
+        numTopics = numClusters
+        if numTopics < 5:
+            numTopics = 5
+        dictionary = Dictionary(preprocessedSentences)
+        corpus = [dictionary.doc2bow(sent) for sent in preprocessedSentences]
+        # Training the LDA Model
+        ldaModel = LdaModel(corpus, num_topics = numTopics, id2word = dictionary, passes = 20)
+        # Print the topics
+        topics = ldaModel.print_topics(num_words = numTopics)
+        topicModelings = []
+        for topicIndex, topic in enumerate(topics):
+            topicWords = [word for word, _ in ldaModel.show_topic(topicIndex)]
+            topicModeling = f'Topic {topicIndex + 1}: {', '.join(topicWords)}'
+            topicModelings.append(topicModeling)
+        allTopicModelings = '\n\n'.join(topicModelings)
+        topicModelingOutput.setText(allTopicModelings)
+
+        progress += 10
+        progressBar.setValue(progress)
+    except Exception as e:
+        pageTitle = f'Error: Unable to access page - {str(e)}'
 
 wikipediaSummarizer = QApplication([])
 
@@ -290,7 +304,9 @@ topWordsTable = QTableWidget(13, 2, window)
 topWordsTable.setFixedSize(400, 400)
 topWordsTable.move(750, 50)
 topWordsTable.setFont(font)
-topWordsTable.horizontalHeader().setStyleSheet("QHeaderView::section {height: 34px; font-family: 'Courier'; font-size: 18px; font-weight: bold}")
+header = topWordsTable.horizontalHeader()
+if header is not None:
+    header.setStyleSheet("QHeaderView::section {height: 34px; font-family: 'Courier'; font-size: 18px; font-weight: bold}")
 topWordsTable.setHorizontalHeaderLabels(['Word', 'Frequency'])
 topWordsTable.setColumnWidth(0, 184)
 topWordsTable.setColumnWidth(1, 184)
