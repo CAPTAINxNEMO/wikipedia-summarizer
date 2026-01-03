@@ -1,4 +1,4 @@
-from urllib.request import urlopen
+from urllib.request import urlopen, Request
 from bs4 import BeautifulSoup
 
 from re import sub
@@ -17,7 +17,7 @@ link = 'https://en.wikipedia.org/wiki/Computer'
 summaryLength = 7
 
 try:
-    webData = urlopen(link)
+    webData = urlopen(Request(link, headers = {'User-Agent': 'Mozilla/5.0 (compatible; WikipediaSummarizer/1.0)'}))
     data = BeautifulSoup(webData, 'lxml')
 
     title = data.find('span', class_ = 'mw-page-title-main')
@@ -74,10 +74,10 @@ try:
 
     print(summaryText)
 
-    print(f'\nFlesch Reading Ease:        {flesch_reading_ease(summaryText, 'en')}')
+    print(f'\nFlesch Reading Ease:          {flesch_reading_ease(summaryText, 'en')}')
     print(f'Flesch-Kincaid Grade:         {flesch_kincaid_grade(summaryText, 'en')}')
     print(f'Gunning Fog:                  {gunning_fog(summaryText, 'en')}')
     print(f'SMOG Index:                   {smog_index(summaryText, 'en')}')
     print(f'Dale-Chall Readability Score: {dale_chall_readability_score(summaryText, 'en')}')
 except Exception as e:
-    pageTitle = f'Error: Unable to access page - {str(e)}'
+    print(f'Error: Unable to access page - {e}')

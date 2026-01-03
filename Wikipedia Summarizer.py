@@ -4,7 +4,7 @@ from PyQt6.QtGui import QFont, QPixmap
 from PyQt6.QtCore import Qt
 
 # Libraries for Web Scraping
-from urllib.request import urlopen
+from urllib.request import urlopen, Request
 from bs4 import BeautifulSoup
 
 # Libraries for Text Preprocessing and Summarization
@@ -26,9 +26,15 @@ from sklearn.metrics import silhouette_score
 from sklearn.cluster import KMeans
 from sklearn.manifold import TSNE
 
-def summary():
-    progressBar.reset()
+# Measuring Time taken for each section
+from time import time
 
+time_open = time()
+
+def summary():
+    time_start = time()
+
+    progressBar.reset()
     progress = 0
     progressBar.setValue(progress)
 
@@ -47,8 +53,11 @@ def summary():
         summaryLength = 7  # Default to Medium if no button is checked
 
     try:
-        webData = urlopen(link)
+        webData = urlopen(Request(link, headers = {'User-Agent': 'Mozilla/5.0 (compatible; WikipediaSummarizer/1.0)'}))
         data = BeautifulSoup(webData, 'lxml')
+
+        time_parse = time() - time_start
+        print(f"Parsing: {time_parse:.2f} sec")
 
         page_title = data.find('span', class_ = 'mw-page-title-main')
         if page_title:
@@ -132,6 +141,9 @@ def summary():
         # Print the summary
         summaryContentOutput.setText(' '.join(summaryContent))
 
+        time_summary = time() - time_start
+        print(f"Summary: {time_summary:.2f} sec")
+
         progress += 10
         progressBar.setValue(progress)
 
@@ -147,6 +159,9 @@ def summary():
             frequencyItem.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             topWordsTable.setItem(i, 0, QTableWidgetItem(topWord))
             topWordsTable.setItem(i, 1, frequencyItem)
+        
+        time_table = time() - time_start
+        print(f"Table: {time_table:.2f} sec")
 
         progress += 5
         progressBar.setValue(progress)
@@ -158,6 +173,9 @@ def summary():
         wordcloud.to_file('wordcloud.png')
         wordcloudPixmap = QPixmap('wordcloud.png')
         wordCloudOutput.setPixmap(wordcloudPixmap)
+
+        time_wordcloud = time() - time_start
+        print(f"WordCloud: {time_wordcloud:.2f} sec")
 
         progress += 5
         progressBar.setValue(progress)
@@ -194,6 +212,9 @@ def summary():
         clusteringPixmap = QPixmap('clustering.png')
         clusteringGraphOutput.setPixmap(clusteringPixmap)
 
+        time_graph = time() - time_start
+        print(f"Graph: {time_graph:.2f} sec")
+
         progress += 20
         progressBar.setValue(progress)
 
@@ -215,10 +236,14 @@ def summary():
         allTopicModelings = '\n\n'.join(topicModelings)
         topicModelingOutput.setText(allTopicModelings)
 
+        time_topics = time() - time_start
+        print(f"Topics: {time_topics:.2f} sec")
+
         progress += 10
         progressBar.setValue(progress)
     except Exception as e:
-        pageTitle = f'Error: Unable to access page - {str(e)}'
+        pageTitle = f'Error: Unable to access page - {e}'
+        pageTitleOutput.setText(pageTitle)
 
 wikipediaSummarizer = QApplication([])
 
@@ -350,5 +375,8 @@ progressBar.setStyleSheet('QProgressBar {border: 1px solid black;text-align: cen
 progressBar.setRange(0, 100)
 
 window.show()
+
+time_gui = time() - time_open
+print(f"GUI: {time_gui:.2f} sec")
 
 wikipediaSummarizer.exec()
