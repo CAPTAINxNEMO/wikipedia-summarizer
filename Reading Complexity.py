@@ -11,6 +11,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 from numpy import mean, zeros, array
 
+from bert_score import score
 from textstat.backend.metrics import flesch_kincaid_grade, flesch_reading_ease, gunning_fog, smog_index, dale_chall_readability_score
 
 link = 'https://en.wikipedia.org/wiki/Computer'
@@ -74,10 +75,20 @@ try:
 
     print(summaryText)
 
-    print(f'\nFlesch Reading Ease:          {flesch_reading_ease(summaryText, 'en')}')
-    print(f'Flesch-Kincaid Grade:         {flesch_kincaid_grade(summaryText, 'en')}')
-    print(f'Gunning Fog:                  {gunning_fog(summaryText, 'en')}')
-    print(f'SMOG Index:                   {smog_index(summaryText, 'en')}')
-    print(f'Dale-Chall Readability Score: {dale_chall_readability_score(summaryText, 'en')}')
+    P, R, F1 = score([summaryText], [content], lang = 'en', verbose = False)
+
+    print(f'BERTScore - Precision        : {P.item():.3f}') # type: ignore
+    print(f'BERTScore - Recall           : {R.item():.3f}') # type: ignore
+    print(f'BERTScore - F1               : {F1.item():.3f}') # type: ignore
+    print(f'Flesch Reading Ease          : {flesch_reading_ease(summaryText, 'en')}')
+    print(f'Flesch-Kincaid Grade         : {flesch_kincaid_grade(summaryText, 'en')}')
+    print(f'Gunning Fog                  : {gunning_fog(summaryText, 'en')}')
+    print(f'SMOG Index                   : {smog_index(summaryText, 'en')}')
+    print(f'Dale-Chall Readability Score : {dale_chall_readability_score(summaryText, 'en')}')
+    # print(f'Flesch Reading Ease          : {flesch_reading_ease(content, 'en'):.3f}')
+    # print(f'Flesch-Kincaid Grade         : {flesch_kincaid_grade(content, 'en'):.3f}')
+    # print(f'Gunning Fog                  : {gunning_fog(content, 'en'):.3f}')
+    # print(f'SMOG Index                   : {smog_index(content, 'en'):.3f}')
+    # print(f'Dale-Chall Readability Score : {dale_chall_readability_score(content, 'en'):.3f}')
 except Exception as e:
     print(f'Error: Unable to access page - {e}')
